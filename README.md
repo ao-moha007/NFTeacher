@@ -1,4 +1,5 @@
-# NFTeacher - NFT-based Learning Progress Tracker
+# NFTeacher 
+# (NFT-based Learning Progress Tracker)
 
 ##  Overview
 NFTeacher is a blockchain-based platform that leverages NFTs to track students' progress through educational modules. Each NFT represents a student's progress, including completed modules, scores, and certification status.
@@ -61,7 +62,7 @@ truffle compile
 truffle migrate --network development
 ```
 
-## 🗒 How to Use the dApp
+## How to Use the dApp
 1. **Mint an NFT:** Admin mints an NFT for a student.
 2. **Complete Modules:** Admin updates module scores.
 3. **Track Progress:** Users view their completion status.
