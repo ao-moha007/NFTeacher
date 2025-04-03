@@ -1,0 +1,7 @@
+{
+    "input": "./contracts",
+    "output": "./docs",
+    "solcModule": "truffle",
+    "artifacts": "./build/contracts"
+  }
+  

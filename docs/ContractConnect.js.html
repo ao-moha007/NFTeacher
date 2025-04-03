@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: ContractConnect.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: ContractConnect.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import Web3 from 'web3';
+import { web3, contract, deployerAccount, getContractOwner } from "../utils/contractConfig.js";
+
+/**
+ * Tests the connection to the smart contract by retrieving basic information 
+ * such as the contract name and owner.
+ *
+ * @async
+ * @returns {Promise&lt;void>} - Resolves when the contract connection is successfully tested.
+ * @throws {Error} - Throws an error if the contract connection fails.
+ */
+async function testContractConnection() {
+    try {
+        const name = await contract.methods.name().call();
+        const owner = await contract.methods.owner().call();
+        console.log("Contract Name:", name);
+        console.log("Contract Owner:", owner);
+    } catch (error) {
+        console.error("Error testing contract connection:", error);
+    }
+}
+
+/**
+ * Fetches the Token URI for a specific tokenId.
+ *
+ * @async
+ * @param {number} tokenId - The ID of the token whose URI is to be fetched.
+ * @returns {Promise&lt;string>} - Resolves with the Token URI for the specified tokenId.
+ * @throws {Error} - Throws an error if fetching the Token URI fails.
+ */
+export async function getTokenURI(tokenId) {
+    try {
+        const progressData = await contract.methods.getProgress(tokenId).call();
+        console.log(progressData);
+        const completedModules = progressData.numCompletedModules;
+        console.log(`Completed modules of ${tokenId}: ${completedModules}`);
+
+        const tokenURI = await contract.methods.getTokenURI(tokenId).call();
+        console.log(`Token URI got for Token ID ${tokenId}: ${tokenURI}`);
+        return tokenURI;
+    } catch (error) {
+        console.error(`Failed to fetch Token URI for Token ID ${tokenId}:`, error.message);
+    }
+}
+
+/**
+ * Certifies a specific token based on its tokenId.
+ * This function estimates the gas required, sends the certification transaction,
+ * and logs the result.
+ *
+ * @async
+ * @param {number} tokenId - The ID of the token to certify.
+ * @returns {Promise&lt;boolean>} - Resolves to the certification status (true if certified).
+ * @throws {Error} - Throws an error if certification fails.
+ */
+export async function certifyToken(tokenId) {
+  try {
+    const gasEstimate = await contract.methods.certify(tokenId).estimateGas({ from: deployerAccount.address });
+    console.log("Gas Estimate:", gasEstimate);
+    
+    const tx = await contract.methods.certify(tokenId).send({ from: deployerAccount.address , gas: gasEstimate });
+    const event = tx.events.TokenCertified;
+    
+    if (event) {
+        console.log("Token ID:", event.returnValues.tokenId);
+        console.log("Certified Status:", event.returnValues.isCertified); 
+        return event.returnValues.isCertified;
+    } else {
+        console.log("No TokenCertified event found.");
+    }
+  } catch (error) {
+      console.error('Error certifying token:', error);
+  }
+}
+
+/**
+ * Checks if a specific module is completed for a given token.
+ * This function estimates gas, calls the smart contract method to check the completion,
+ * and logs the result.
+ *
+ * @async
+ * @param {number} tokenId - The ID of the token to check.
+ * @param {number} moduleNum - The module number to check for completion.
+ * @returns {Promise&lt;void>} - Resolves once the module completion status and score are logged.
+ * @throws {Error} - Throws an error if checking module completion fails.
+ */
+export async function checkModuleCompletion(tokenId, moduleNum) {
+  try {
+    const gasEstimate = await contract.methods.IsCompleted(tokenId, moduleNum).estimateGas({ from: deployerAccount.address });
+    console.log("Gas Estimate:", gasEstimate);
+    
+    const isCompleted = await contract.methods.IsCompleted(tokenId, moduleNum).call({ from: deployerAccount.address });
+    console.log(`Module ${moduleNum} completed:`, isCompleted[0]);
+    console.log(`Score for Module ${moduleNum}:`, isCompleted[1]);
+  } catch (error) {
+      console.error('Error checking module completion:', error);
+  }
+}
+
+/**
+ * Sets the Token URI for a specific tokenId to the provided IPFS URL.
+ * This function estimates gas, checks if the token exists, and sets the Token URI 
+ * if the token is valid.
+ *
+ * @async
+ * @param {number} tokenId - The ID of the token whose URI is to be set.
+ * @param {string} ipfsUrl - The IPFS URL to set as the Token URI.
+ * @returns {Promise&lt;void>} - Resolves once the Token URI is set for the specified tokenId.
+ * @throws {Error} - Throws an error if setting the Token URI fails.
+ */
+export async function setTokenURI(tokenId, ipfsUrl) {
+  try {
+    const gasEstimate = await contract.methods.setTokenURI(tokenId, ipfsUrl).estimateGas({ from: deployerAccount.address });
+    console.log("Gas Estimate:", gasEstimate);
+
+    const exists = await contract.methods.ownerOf(tokenId).call().catch(() => null);
+    if (!exists) {
+        console.log("Token does not exist!");
+    } else {
+        const tokenURI = await contract.methods.tokenURI(tokenId).call();
+        if (tokenURI) {
+          console.log("Token URI:", tokenURI);
+          return;
+        }
+        
+        const toakenURI = await contract.methods.setTokenURI(tokenId, ipfsUrl).send({ from: deployerAccount.address , gas: gasEstimate });
+        console.log(`Metadata URL set for tokenId ${tokenId}: Metadata URL: ${ipfsUrl}`);
+        return toakenURI;
+    }
+  } catch (error) {
+    console.error("Error setting token URI:", error);
+  }
+}
+
+/**
+ * Completes a module for a specific tokenId and updates its score.
+ * This function estimates the gas, sends the transaction to update the module score,
+ * and logs the result.
+ *
+ * @async
+ * @param {number} tokenId - The ID of the token for which the module is being completed.
+ * @param {number} moduleNum - The module number to update.
+ * @param {number} score - The score to assign to the module.
+ * @returns {Promise&lt;void>} - Resolves once the module score is updated.
+ * @throws {Error} - Throws an error if completing the module fails.
+ */
+export async function completeModule(tokenId, moduleNum, score) {
+  try {
+    const gasEstimate = await contract.methods.updateModuleScore(tokenId, moduleNum, score).estimateGas({ from: deployerAccount.address });
+    const tx = await contract.methods.updateModuleScore(tokenId, moduleNum, score).send({ from: deployerAccount.address , gas: gasEstimate });
+  } catch (error) {
+      console.error('Error completing module:', error);
+  }
+}
+
+/**
+ * Retrieves the progress data for a specific tokenId.
+ * This function calls the `getProgress` method from the contract, destructures 
+ * the result, and logs the progress details such as completed modules, certification status,
+ * and module scores.
+ *
+ * @async
+ * @param {number} tokenId - The ID of the token whose progress data is to be fetched.
+ * @returns {Promise&lt;void>} - Resolves once the progress data is logged.
+ * @throws {Error} - Throws an error if fetching the progress data fails.
+ */
+export async function getProgressData(tokenId) {
+  try {
+      const progress = await contract.methods.getProgress(tokenId).call();
+      const [completedModules, isCertified, moduleCompletedNum, moduleScores] = progress;
+
+      console.log('Completed Modules:', completedModules);
+      console.log('Is Certified:', isCertified);
+      console.log('Module Completed:', moduleCompletedNum);
+      console.log('Module Scores:', moduleScores);
+
+      moduleScores.forEach((score, index) => {
+          console.log(`Module ${index + 1} Score:`, score);
+      });
+  } catch (error) {
+      console.error('Error fetching progress data:', error);
+  }
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#certifyToken">certifyToken</a></li><li><a href="global.html#checkModuleCompletion">checkModuleCompletion</a></li><li><a href="global.html#completeModule">completeModule</a></li><li><a href="global.html#getProgressData">getProgressData</a></li><li><a href="global.html#getTokenURI">getTokenURI</a></li><li><a href="global.html#mintNFT">mintNFT</a></li><li><a href="global.html#setTokenURI">setTokenURI</a></li><li><a href="global.html#testContractConnection">testContractConnection</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Thu Apr 03 2025 01:57:03 GMT+0200 (Central European Summer Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
