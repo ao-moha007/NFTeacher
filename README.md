@@ -14,9 +14,9 @@ NFTeacher is a blockchain-based platform that leverages NFTs to track students' 
 
 ##  Tech Stack
 - **Blockchain:** Ethereum
-- **Smart Contract Language:** Solidity (OpenZeppelin ERC721, Ownable)
+- **Smart Contract Language:** Solidity (OpenZeppelin ERC721)
 - **Frameworks:** Truffle
-- **Frontend:**  Next.js (Optional)
+- **Frontend:**  Next.js 
 - **Storage:** IPFS via Pinata
 - **APIs & Libraries:** Web3.js, Axios, dotenv
 
@@ -33,7 +33,7 @@ Ensure you have the following installed before running the project:
 ##  Smart Contract Details
 - **Contract Name:** `NFTeacher`
 - **Contract Address:** (To be added after deployment)
-- **Network:** Ethereum Mainnet / Testnet (Goerli, Sepolia, etc.)
+- **Network:** Ethereum Mainnet / Testnet (Sepolia)
 - **Explorer:** (To be added after deployment)
 - **ABI Location:** `./build/contracts/NFTeacher.json`
 
@@ -41,7 +41,7 @@ Ensure you have the following installed before running the project:
 ```bash
 # Clone the repository
 git clone https://github.com/ao-moha007/NFTeacher.git
-cd your-repo
+
 
 # Install dependencies
 npm install
